@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cequel-space-app
+  labels:
+    component: cequel-space-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cequel-space-app
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: cequel-space-app
+    spec:
+      containers:
+      - name: cequel-space-app
+        image: "{{ .Values.images.app }}"
+        imagePullPolicy: Always
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "[ -f /tmp/nginx.pid ] && ps -A | grep nginx"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        #readinessProbe:
+        #  httpGet:
+        #    scheme: HTTP
+        #    path: /index.html
+        #    port: 80
+        #  initialDelaySeconds: 10
+        #  periodSeconds: 10
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/nginx/html/config.json
+          subPath: config.json
+      volumes:
+      - name: config
+        configMap:
+          name: cequel-space-app-cm

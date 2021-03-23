@@ -1,0 +1,22 @@
+{{- $loadBalancer := .Values.expose.loadBalancer }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: cequel-space
+  labels:
+    component: cequel-space
+{{- with $loadBalancer.annotations }}
+  annotations:
+  {{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  ports:
+    - port: 80
+      name: http
+      targetPort: 8080
+  selector:
+    component: nginx
+  type: LoadBalancer
+  {{- if $loadBalancer.IP }}
+  loadBalancerIP: {{ $loadBalancer.IP }}
+  {{- end }}

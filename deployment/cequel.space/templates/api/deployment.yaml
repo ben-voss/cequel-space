@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cequel-space-api
+  labels:
+    component: cequel-space-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: cequel-space-api
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: cequel-space-api
+    spec:
+      containers:
+      - name: cequel-space-api
+        image: "{{ .Values.images.api }}"
+        imagePullPolicy: Always
+        #readinessProbe:
+        #  httpGet:
+        #    scheme: HTTP
+        #    path: /index.html
+        #    port: 80
+        #  initialDelaySeconds: 10
+        #  periodSeconds: 10
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://0.0.0.0:80"
+        - name: OAuth__Authority
+          value: "{{ .Values.authentication.authority }}"
+        - name: OAuth__AuthorizationUrl
+          value: "{{ .Values.authentication.authorizationUrl }}"
+        - name: OAuth__TokenUrl
+          value: "{{ .Values.authentication.tokenUrl }}"
+        - name: OAuth__Audience
+          value: "{{ .Values.authentication.audience }}"
+        - name: OAuth__ClientId
+          value: "{{ .Values.authentication.clientId }}"
+        - name: Redis__EndPoint
+          value: "{{ .Values.redis.endPoint }}"
+        - name: Redis__Database
+          value: "{{ .Values.redis.database }}"

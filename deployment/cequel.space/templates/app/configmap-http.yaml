@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cequel-space-app-cm
+data:
+  config.json: |+
+    {
+      "authority": "{{ .Values.authentication.authority }}",
+      "clientId": "{{ .Values.authentication.clientId }}",
+      "responseType": "{{ .Values.authentication.responseType }}"
+    }
