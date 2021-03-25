@@ -9,7 +9,7 @@ RUN npm --version
 # Pull in all dependencies
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # Copy in all the source and build
 COPY . .
