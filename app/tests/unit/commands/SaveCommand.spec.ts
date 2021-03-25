@@ -2,17 +2,10 @@ import "reflect-metadata";
 import SaveCommand from "@/commands/SaveCommand";
 import { JSDOM } from "jsdom";
 import { mock } from "jest-mock-extended";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
+import { Store } from "vuex";
 import Api from "@/api/Api";
-
-const store = storeFactory(
-  connectionsStateFactory(),
-  schemaStateFactory(),
-  tabsStateFactory()
-);
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
 
 const dom = new JSDOM();
 global.document = dom.window.document;
@@ -23,29 +16,31 @@ Object.assign(document.body, {
   removeChild: jest.fn()
 });
 
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("SaveCommand", () => {
   beforeEach(() => {
-    store.getters["tabs/selected"] = null;
     (document.body.appendChild as jest.Mock).mockReset();
     (document.body.removeChild as jest.Mock).mockReset();
   });
 
   test("Disabled when no selected tab", async () => {
     const mockApi = mock<Api>();
+    const store = new MockStore();
     const c = new SaveCommand(mockApi, store);
 
     expect(c.isDisabled).toBeTruthy();
   });
 
   test("Disabled when a tab has no edits", async () => {
+    const store = new MockStore();
     const tab = {
       session: {
         getUndoManager: () => {
@@ -67,6 +62,7 @@ describe("SaveCommand", () => {
   });
 
   test("Enabled when a tab has edits", async () => {
+    const store = new MockStore();
     const tab = {
       session: {
         getUndoManager: () => {
@@ -87,6 +83,7 @@ describe("SaveCommand", () => {
   });
 
   test("Action with a tab generates download", async () => {
+    const store = new MockStore();
     Object.assign(window, {
       ipcRenderer: undefined
     });
@@ -111,15 +108,11 @@ describe("SaveCommand", () => {
 
     await c.action();
 
-    const expectedObj = document.createElement("A");
-    expectedObj.setAttribute("download", "Test.sql");
-    expectedObj.setAttribute("href", "data:application/sql,Test");
-
-    expect(document.body.appendChild).toBeCalledWith(expectedObj);
-    expect(document.body.removeChild).toBeCalledWith(expectedObj);
+    expect(mockApi.saveAs).toBeCalledWith("Test", "sql");
   });
 
   test("Save via IPC", async () => {
+    const store = new MockStore();
     try {
       let bb = () => {
         //
@@ -154,7 +147,7 @@ describe("SaveCommand", () => {
 
       //c.ipcRendererAction([]);
 
-      expect(mockApi.saveAs).toBeCalledWith("Test", "csv");
+      expect(mockApi.saveAs).toBeCalledWith("Test", "sql");
     } finally {
       Object.assign(window, {
         ipcRenderer: undefined

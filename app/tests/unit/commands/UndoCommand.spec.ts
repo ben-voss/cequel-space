@@ -1,11 +1,10 @@
 import "reflect-metadata";
 import UndoCommand from "@/commands/UndoCommand";
 import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
-
-const store = storeFactory(connectionsStateFactory(), schemaStateFactory(), tabsStateFactory());
+import { Store } from "vuex";
+import Api from "@/api/Api";
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
 
 Object.assign(navigator, {
   clipboard: {
@@ -13,26 +12,26 @@ Object.assign(navigator, {
   }
 });
 
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("UndoCommand", () => {
-  beforeEach(() => {
-    store.getters["tabs/selected"] = null;
-  });
 
   test("Disabled when no selected tab", async () => {
+    const store = new MockStore();
     const c = new UndoCommand(store);
 
     expect(c.isDisabled).toBeTruthy();
   });
 
   test("Disabled when a tab is selected and cannot undo", async () => {
+    const store = new MockStore();
     const tab = {
       session: {
         getUndoManager: () => {
@@ -53,6 +52,7 @@ describe("UndoCommand", () => {
   });
 
   test("Enabled when a tab is selected and can undo", async () => {
+    const store = new MockStore();
     const tab = {
       session: {
         getUndoManager: () => {
@@ -73,10 +73,12 @@ describe("UndoCommand", () => {
   });
 
   test("Action with no tabs does nothing", async () => {
+    const store = new MockStore();
     await new UndoCommand(store).action();
   });
 
   test("Action with a tab calls redo", async () => {
+    const store = new MockStore();
     const mockFn = jest.fn();
 
     store.getters["tabs/selected"] = {

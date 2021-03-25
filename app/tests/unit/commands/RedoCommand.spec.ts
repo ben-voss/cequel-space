@@ -1,11 +1,9 @@
 import "reflect-metadata";
 import RedoCommand from "@/commands/RedoCommand";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
-
-const store = storeFactory(connectionsStateFactory(), schemaStateFactory(), tabsStateFactory());
+import { Store } from "vuex";
+import Api from "@/api/Api";
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
 
 Object.assign(navigator, {
   clipboard: {
@@ -13,26 +11,25 @@ Object.assign(navigator, {
   }
 });
 
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("RedoCommand", () => {
-  beforeEach(() => {
-    store.getters["tabs/selected"] = null;
-  });
-
   test("Disabled when no selected tab", async () => {
+    const store = new MockStore();
     const c = new RedoCommand(store);
 
     expect(c.isDisabled).toBeTruthy();
   });
 
   test("Disabled when a tab is selected and cannot redo", async () => {
+    const store = new MockStore();
     const tab = {
       session: {
         getUndoManager: () => {
@@ -53,6 +50,7 @@ describe("RedoCommand", () => {
   });
 
   test("Enabled when a tab is selected and can redo", async () => {
+    const store = new MockStore();
     const tab = {
       session: {
         getUndoManager: () => {
@@ -73,10 +71,12 @@ describe("RedoCommand", () => {
   });
 
   test("Action with no tabs does nothing", async () => {
+    const store = new MockStore();
     await new RedoCommand(store).action();
   });
 
   test("Action with a tab calls redo", async () => {
+    const store = new MockStore();
     const mockFn = jest.fn();
 
     store.getters["tabs/selected"] = {

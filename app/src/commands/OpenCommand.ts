@@ -47,7 +47,7 @@ export default class OpenCommand extends BaseCommand implements Command {
     tab.name = basename(fileName, extname(fileName));
     tab.sqlText = content;
 
-    this.store.dispatch("tabs/add", { tab });
+    this.store.dispatch("tabs/add", { tab: tab });
   }
 
   public get isDisabled(): boolean {

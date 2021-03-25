@@ -1,19 +1,11 @@
 import "reflect-metadata";
 import ExportCommand from "@/commands/ExportCommand";
 import { JSDOM } from "jsdom";
-import RpcClient from "@/rpc/RpcClient";
 import { mock } from "jest-mock-extended";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
 import Api from "@/api/Api";
-
-const store = storeFactory(
-  connectionsStateFactory(),
-  schemaStateFactory(),
-  tabsStateFactory()
-);
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
+import { Store } from "vuex";
 
 jest.mock("uuid", () => ({
   v1: () => "testId"
@@ -35,17 +27,17 @@ Object.assign(document.body, {
   removeChild: jest.fn()
 });
 
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("ExportCommand", () => {
   beforeEach(() => {
-    store.getters["tabs/selected"] = null;
     (document.body.appendChild as jest.Mock).mockReset();
     (document.body.removeChild as jest.Mock).mockReset();
     (window.ipcRenderer.on as jest.Mock).mockReset();
@@ -54,6 +46,7 @@ describe("ExportCommand", () => {
 
   test("Disabled when no selected tab", async () => {
     const mockApi = mock<Api>();
+    const store = new MockStore();
     const c = new ExportCommand(mockApi, store);
 
     expect(c.isDisabled).toBeTruthy();
@@ -68,6 +61,7 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
@@ -85,6 +79,7 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
@@ -102,6 +97,7 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
@@ -121,22 +117,16 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
+    
     const c = new ExportCommand(mockApi, store);
 
     await c.action();
 
-    const expectedObj = document.createElement("A");
-    expectedObj.setAttribute("download", "Test.csv");
-    expectedObj.setAttribute(
-      "href",
-      "data:application/csv,Column%201%2CColumn%202%0D%0AR1C1%2CR1C2%0D%0A"
-    );
-
-    expect(document.body.appendChild).toBeCalledWith(expectedObj);
-    expect(document.body.removeChild).toBeCalledWith(expectedObj);
+    expect(mockApi.save).toBeCalledWith("Test.csv", "Column 1,Column 2\nR1C1,R1C2\n", "csv");
   });
 
   test("Results with nulls", async () => {
@@ -150,20 +140,13 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
     await new ExportCommand(mockApi, store).action();
 
-    const expectedObj = document.createElement("A");
-    expectedObj.setAttribute("download", "Test.csv");
-    expectedObj.setAttribute(
-      "href",
-      "data:application/csv,Column%201%2CColumn%202%0D%0AR1C1%2C%0D%0A"
-    );
-
-    expect(document.body.appendChild).toBeCalledWith(expectedObj);
-    expect(document.body.removeChild).toBeCalledWith(expectedObj);
+    expect(mockApi.save).toBeCalledWith("Test.csv", "Column 1,Column 2\nR1C1,\n", "csv");
   });
 
   test("Multiple results", async () => {
@@ -181,6 +164,7 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
@@ -188,29 +172,13 @@ describe("ExportCommand", () => {
 
     await c.action();
 
-    let expectedObj = document.createElement("A");
-    expectedObj.setAttribute("download", "Test-1.csv");
-    expectedObj.setAttribute(
-      "href",
-      "data:application/csv,Column%201%2CColumn%202%0D%0A1R1C1%2C1R1C2%0D%0A"
-    );
-
-    expect(document.body.appendChild).toBeCalledWith(expectedObj);
-    expect(document.body.removeChild).toBeCalledWith(expectedObj);
-
-    expectedObj = document.createElement("A");
-    expectedObj.setAttribute("download", "Test-2.csv");
-    expectedObj.setAttribute(
-      "href",
-      "data:application/csv,Column%201%2CColumn%202%0D%0A2R1C1%2C2R1C2%0D%0A"
-    );
-
-    expect(document.body.appendChild).toBeCalledWith(expectedObj);
-    expect(document.body.removeChild).toBeCalledWith(expectedObj);
+    expect(mockApi.save).toBeCalledWith("Test-1.csv", "Column 1,Column 2\n1R1C1,1R1C2\n", "csv");
+    expect(mockApi.save).toBeCalledWith("Test-2.csv", "Column 1,Column 2\n2R1C1,2R1C2\n", "csv");
   });
 
   test("Save via IPC - no tab does nothing", async () => {
     const mockApi = mock<Api>();
+    const store = new MockStore();
     const c = new ExportCommand(mockApi, store);
 
     c.ipcRendererAction(["test.csv"]);
@@ -229,6 +197,7 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
@@ -236,11 +205,7 @@ describe("ExportCommand", () => {
 
     await c.ipcRendererAction(["test.csv"]);
 
-    expect(mockApi.save).toBeCalledWith(
-      "test.csv",
-      "Column 1,Column 2\r\nR1C1,R1C2\r\n",
-      "csv"
-    );
+    expect(mockApi.save).toBeCalledWith("test.csv", "Column 1,Column 2\nR1C1,R1C2\n", "csv");
   });
 
   test("Save multiple recordsets IPC", async () => {
@@ -258,6 +223,7 @@ describe("ExportCommand", () => {
         }
       ]
     };
+    const store = new MockStore();
     store.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
@@ -265,16 +231,7 @@ describe("ExportCommand", () => {
 
     c.ipcRendererAction(["test.csv"]);
 
-    expect(mockApi.save).toBeCalledWith(
-      "./test-1.csv",
-      "Column 1,Column 2\r\n1R1C1,1R1C2\r\n",
-      "csv"
-    );
-
-    expect(mockApi.save).toBeCalledWith(
-      "./test-2.csv",
-      "Column 1,Column 2\r\n2R1C1,2R1C2\r\n",
-      "csv"
-    );
+    expect(mockApi.save).toBeCalledWith("./test-1.csv", "Column 1,Column 2\n1R1C1,1R1C2\n", "csv");
+    expect(mockApi.save).toBeCalledWith("./test-2.csv", "Column 1,Column 2\n2R1C1,2R1C2\n", "csv");
   });
 });

@@ -1,6 +1,10 @@
 import EditableLabel from "@/components/EditableLabel.vue";
 import { mount } from "@vue/test-utils";
 
+import Vue from "vue";
+import Vuetify from "vuetify";
+Vue.use(Vuetify)
+
 function unwrap(foo: any[][] | undefined): any {
   if (foo && foo.length > 0) {
     foo = foo[0];

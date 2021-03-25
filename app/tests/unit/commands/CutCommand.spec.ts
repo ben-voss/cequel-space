@@ -1,11 +1,8 @@
 import "reflect-metadata";
 import CutCommand from "@/commands/CutCommand";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
-
-const store = storeFactory(connectionsStateFactory(), schemaStateFactory(), tabsStateFactory());
+import { Store } from "vuex";
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
 
 Object.assign(navigator, {
   clipboard: {
@@ -13,26 +10,25 @@ Object.assign(navigator, {
   }
 });
 
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("CutCommand", () => {
-  beforeEach(() => {
-    store.getters["tabs/selected"] = null;
-  });
-
   test("Never disabled", async () => {
+    const store = new MockStore();
     const c = new CutCommand(store);
 
     expect(c.isDisabled).toBeFalsy();
   });
 
   test("Action with no tabs does nothing", async () => {
+    const store = new MockStore();
     new CutCommand(store).action();
 
     expect(navigator.clipboard.writeText).not.toBeCalled();
@@ -41,6 +37,7 @@ describe("CutCommand", () => {
   test("Action with a tab copies text", async () => {
     const mockFn = jest.fn();
 
+    const store = new MockStore();
     store.getters["tabs/selected"] = {
       session: {
         getTextRange: () => {

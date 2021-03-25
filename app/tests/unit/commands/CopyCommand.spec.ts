@@ -1,14 +1,8 @@
 import "reflect-metadata";
 import CopyCommand from "@/commands/CopyCommand";
 import { Store } from "vuex";
-import { mock } from "jest-mock-extended";
+import jestMock from "jest-mock";
 import AppState from "@/store/AppState";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
-
-const store = storeFactory(connectionsStateFactory(), schemaStateFactory(), tabsStateFactory());
 
 Object.assign(navigator, {
   clipboard: {
@@ -17,21 +11,19 @@ Object.assign(navigator, {
   }
 });
 
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("CopyCommand", () => {
-  beforeEach(() => {
-    store.getters["tabs/selected"] = null;
-  });
 
   test("Never disabled", async () => {
-    const store = mock<Store<AppState>>();
+    const store = new MockStore();
 
     const c = new CopyCommand(store);
 
@@ -39,13 +31,14 @@ describe("CopyCommand", () => {
   });
 
   test("Action with no tabs does nothing", async () => {
-    const store = mock<Store<AppState>>();
+    const store = new MockStore();
     new CopyCommand(store).action();
 
     expect(navigator.clipboard.writeText).not.toBeCalled();
   });
 
   test("Action with a tab copies text", async () => {
+    const store = new MockStore();
     store.getters["tabs/selected"] = {
       session: {
         getTextRange: () => {

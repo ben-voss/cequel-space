@@ -74,9 +74,9 @@ export default class ExportCommand extends BaseCommand implements Command {
       const csvString = this.generateCsvData(tab.grids[i]);
 
       if (tab.grids.length === 1) {
-        this.api.save(csvString, tab.name + ".csv", "csv");
+        this.api.save(tab.name + ".csv", csvString, "csv");
       } else {
-        this.api.save(csvString, tab.name + "-" + (i + 1) + ".csv", "csv");
+        this.api.save(tab.name + "-" + (i + 1) + ".csv", csvString, "csv");
       }
     }
   }
@@ -90,7 +90,7 @@ export default class ExportCommand extends BaseCommand implements Command {
       }
       csvString += c.headerName;
     });
-    csvString += "\r\n";
+    csvString += "\n";
 
     // Append all the data (nulls are skipped)
     grid.rowData?.forEach(r => {
@@ -103,7 +103,7 @@ export default class ExportCommand extends BaseCommand implements Command {
           csvString += e;
         }
       });
-      csvString += "\r\n";
+      csvString += "\n";
     });
 
     return csvString;

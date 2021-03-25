@@ -3,29 +3,24 @@ import NewCommand from "@/commands/NewCommand";
 import { mock } from "jest-mock-extended";
 import Api from "@/api/Api";
 import Tab from "@/model/Tab";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
+import { Store } from "vuex";
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
 
-const store = storeFactory(connectionsStateFactory(), schemaStateFactory(), tabsStateFactory());
-
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
-    dispatch: jest.fn(),
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("NewCommand", () => {
-  beforeEach(() => {
-    store.getters["tabs/selected"] = null;
-  });
 
   test("Never disabled", async () => {
     const api = mock<Api>();
+    const store = new MockStore();
     const tabFactory = () => { return mock<Tab>() };
 
     const c = new NewCommand(store, api, tabFactory);
@@ -35,6 +30,7 @@ describe("NewCommand", () => {
 
   test("Action adds a tab", async () => {
     const api = mock<Api>();
+    const store = new MockStore();
     const tabFactory = () => { return mock<Tab>() };
 
     new NewCommand(store, api, tabFactory).action();

@@ -1,20 +1,13 @@
 import "reflect-metadata";
 import OpenCommand from "@/commands/OpenCommand";
 import { JSDOM } from "jsdom";
-import RpcClient from "@/rpc/RpcClient";
 import { mock } from "jest-mock-extended";
 import Api from "@/api/Api";
 import Tab from "@/model/Tab";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
-
-const store = storeFactory(
-  connectionsStateFactory(),
-  schemaStateFactory(),
-  tabsStateFactory()
-);
+import { Store } from "vuex";
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
+import FileInfo from "@/api/FileInfo";
 
 const dom = new JSDOM();
 global.document = dom.window.document;
@@ -34,41 +27,20 @@ jest.spyOn(FileReader.prototype, "readAsText").mockImplementation(() => {
   } as unknown) as Event);
 });
 
-Object.assign(document.body, {
-  appendChild: jest.fn((fileInput: HTMLInputElement) => {
-    if (!fileInput) {
-      return;
-    }
-
-    fileInput.onclick = () => {
-      if (!fileInput.onchange) {
-        return;
-      }
-
-      fileInput.onchange(({
-        target: {
-          files: [{ name: "Test File.sql" }]
-        }
-      } as unknown) as Event);
-    };
-  }),
-  removeChild: jest.fn()
-});
-
-jest.mock("@/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
-    dispatch: jest.fn()
+    getters: {
+      "tabs/selected": null
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("OpenCommand", () => {
-  beforeEach(() => {
-    (document.body.appendChild as jest.Mock).mockClear();
-    (document.body.removeChild as jest.Mock).mockClear();
-  });
 
   test("Never disabled", async () => {
     const api = mock<Api>();
+    const store = new MockStore();
     const tabFactory = () => { return mock<Tab>() };
 
     const c = new OpenCommand(store, api, tabFactory);
@@ -77,44 +49,49 @@ describe("OpenCommand", () => {
   });
 
   test("Action adds a tab", async () => {
-    Object.assign(window, {
-      ipcRenderer: null
-    });
-
     const api = mock<Api>();
-    const tabFactory = () => { return mock<Tab>() };
+    api.open.mockReturnValue(
+      new Promise<FileInfo>(r => r(
+        {
+          name: "Test File",
+          content: "Content"
+        }))
+    );    
+
+    const store = new MockStore();
+    const tabFactory = () => {
+      return {
+        fileName: null,
+        name: "",
+      } as Tab;
+    };
 
     await new OpenCommand(store, api, tabFactory).action();
 
-    const expectedObj = document.createElement("input");
-    expectedObj.type = "file";
-    expectedObj.accept = ".sql,*.txt";
-    expectedObj.style.display = "none";
-
-    expect(document.body.appendChild).toBeCalledWith(expectedObj);
-    expect(document.body.removeChild).toBeCalledWith(expectedObj);
+    expect(api.open).toBeCalled();
 
     expect(store.dispatch).toBeCalledWith(
       "tabs/add",
       expect.objectContaining({
         tab: expect.objectContaining({
-          fileName: "Test File.sql",
-          name: "Test File"
+          fileName: "Test File",
+          name: "Test File",
+          sqlText: "Content"
         })
       })
     );
   });
 
   test("IPC Action adds a tab", async () => {
-    Object.assign(window, {
-      ipcRenderer: {
-        send: jest.fn(),
-        on: jest.fn()
-      }
-    });
-
     const api = mock<Api>();
-    const tabFactory = () => { return mock<Tab>() };
+    const store = new MockStore();
+
+    const tabFactory = () => {
+      return {
+        fileName: null,
+        name: "",
+      } as Tab;
+    };
 
     new OpenCommand(store, api, tabFactory).ipcRendererAction([
       "",
@@ -127,7 +104,8 @@ describe("OpenCommand", () => {
       expect.objectContaining({
         tab: expect.objectContaining({
           fileName: "Test File.sql",
-          name: "Test File"
+          name: "Test File",
+          sqlText: "Test Contents"
         })
       })
     );

@@ -1,18 +1,10 @@
 import "reflect-metadata";
 import CloseSelectedEditorCommand from "@/commands/CloseSelectedEditorCommand";
-import RpcClient from "@/rpc/RpcClient";
 import { mock } from "jest-mock-extended";
-import storeFactory from "@/store/electronStore";
-import connectionsStateFactory from "@/store/modules/Connections";
-import schemaStateFactory from "@/store/modules/Schema";
-import tabsStateFactory from "@/store/modules/Tabs";
 import Api from "@/api/Api";
-
-const store = storeFactory(
-  connectionsStateFactory(),
-  schemaStateFactory(),
-  tabsStateFactory()
-);
+import jestMock from "jest-mock";
+import AppState from "@/store/AppState";
+import { Store } from "vuex";
 
 Object.assign(window, {
   ipcRenderer: {
@@ -27,43 +19,44 @@ Object.assign(navigator, {
   }
 });
 
-jest.mock("vuex/store", () => {
+const MockStore = (jestMock.fn(() => {
   return {
-    dispatch: jest.fn(),
     getters: {
       "tabs/selected": null
-    }
+    },
+    dispatch: jestMock.fn()
   };
-});
+}) as unknown) as jestMock.Mock<Store<AppState>>;
 
 describe("CloseSelectedEditorCommand", () => {
   beforeEach(() => {
-    store.getters["tabs/selected"] = null;
     (window.ipcRenderer.on as jest.Mock).mockReset();
-    (store.dispatch as jest.Mock).mockReset();
   });
 
   test("Disabled when there is no selected tab", async () => {
     const mockApi = mock<Api>();
+    const mockStore = new MockStore();
 
-    const c = new CloseSelectedEditorCommand(mockApi, store);
+    const c = new CloseSelectedEditorCommand(mockApi, mockStore);
 
     expect(c.isDisabled).toBeTruthy();
   });
 
   test("Enabled when there is a selected tab", async () => {
     const mockApi = mock<Api>();
+    const mockStore = new MockStore();
 
-    const c = new CloseSelectedEditorCommand(mockApi, store);
-    store.getters["tabs/selected"] = {};
+    const c = new CloseSelectedEditorCommand(mockApi, mockStore);
+    mockStore.getters["tabs/selected"] = {};
 
     expect(c.isDisabled).toBeFalsy();
   });
 
   test("Action with no tabs does nothing", async () => {
     const mockApi = mock<Api>();
+    const mockStore = new MockStore();
 
-    new CloseSelectedEditorCommand(mockApi, store).action();
+    new CloseSelectedEditorCommand(mockApi, mockStore).action();
   });
 
   test("Action with a tab closes the tab", async () => {
@@ -78,17 +71,18 @@ describe("CloseSelectedEditorCommand", () => {
         }
       }
     };
-
-    store.getters["tabs/selected"] = tab;
+    const mockStore = new MockStore();
+    mockStore.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
-    new CloseSelectedEditorCommand(mockApi, store).action();
+    new CloseSelectedEditorCommand(mockApi, mockStore).action();
 
-    expect(store.dispatch).toBeCalledWith("tabs/delete", { tab });
+    expect(mockStore.dispatch).toBeCalledWith("tabs/delete", { tab });
   });
 
   test("Action with a dirty tab asks for confirmation.", async () => {
-    store.getters["tabs/selected"] = {
+    const mockStore = new MockStore();
+    mockStore.getters["tabs/selected"] = {
       session: {
         getUndoManager: () => {
           return {
@@ -102,7 +96,7 @@ describe("CloseSelectedEditorCommand", () => {
     };
 
     const mockApi = mock<Api>();
-    await new CloseSelectedEditorCommand(mockApi, store).action();
+    await new CloseSelectedEditorCommand(mockApi, mockStore).action();
 
     expect(mockApi.messageBox).toBeCalledWith({
       buttons: ["Save", "Don't Save", "Cancel"],
@@ -127,18 +121,19 @@ describe("CloseSelectedEditorCommand", () => {
       fileName: "Test File Name",
       sqlText: "Test SQL"
     };
+    const mockStore = new MockStore();
 
-    store.getters["tabs/selected"] = tab;
+    mockStore.getters["tabs/selected"] = tab;
 
     const mockApi = mock<Api>();
     mockApi.messageBox.mockReturnValue(
       new Promise<number>(r => r(0))
     );
 
-    await new CloseSelectedEditorCommand(mockApi, store).action();
+    await new CloseSelectedEditorCommand(mockApi, mockStore).action();
 
-    expect(mockApi.save).toBeCalledWith("Test File Name", "Test SQL");
-    expect(store.dispatch).toBeCalledWith("tabs/delete", { tab });
+    expect(mockApi.save).toBeCalledWith("Test File Name", "Test SQL", "sql");
+    expect(mockStore.dispatch).toBeCalledWith("tabs/delete", { tab });
   });
 
   test("Confirmation with not saving closes without saving.", async () => {
@@ -158,15 +153,15 @@ describe("CloseSelectedEditorCommand", () => {
         }
       }
     };
+    const mockStore = new MockStore();
+    mockStore.getters["tabs/selected"] = tab;
 
-    store.getters["tabs/selected"] = tab;
-
-    const c = new CloseSelectedEditorCommand(mockApi, store);
+    const c = new CloseSelectedEditorCommand(mockApi, mockStore);
 
     await c.action();
 
     expect(mockApi.save).not.toBeCalledWith(expect.anything());
-    expect(store.dispatch).toBeCalledWith("tabs/delete", { tab });
+    expect(mockStore.dispatch).toBeCalledWith("tabs/delete", { tab });
   });
 
   test("Confirmation with with cancelling does nothing.", async () => {
@@ -174,8 +169,8 @@ describe("CloseSelectedEditorCommand", () => {
     mockApi.messageBox.mockReturnValue(
       new Promise<number>(r => r(2))
     );
-
-    store.getters["tabs/selected"] = {
+    const mockStore = new MockStore();
+    mockStore.getters["tabs/selected"] = {
       session: {
         getUndoManager: () => {
           return {
@@ -187,9 +182,9 @@ describe("CloseSelectedEditorCommand", () => {
       }
     };
 
-    new CloseSelectedEditorCommand(mockApi, store).action();
+    new CloseSelectedEditorCommand(mockApi, mockStore).action();
 
     expect(mockApi.save).not.toBeCalledWith(expect.anything());
-    expect(store.dispatch).not.toBeCalled();
+    expect(mockStore.dispatch).not.toBeCalled();
   });
 });

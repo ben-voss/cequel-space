@@ -7,6 +7,9 @@ import container, { Symbols } from "@/di";
 import { mock } from "jest-mock-extended";
 import Api from "@/api/Api";
 
+import Vue from "vue";
+Vue.use(Vuetify);
+
 const localVue = createLocalVue();
 localVue.use(Vuex);
 localVue.use(Vuetify);
