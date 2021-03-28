@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Log into registry
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login docker.pkg.github.com -u benvoss --password-stdin
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login docker.pkg.github.com -u benvoss --password-stdin
 
       - name: Push image
         run: |
