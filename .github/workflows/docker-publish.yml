@@ -44,8 +44,8 @@ jobs:
 
           echo VERSION=$VERSION
 
-          docker tag cequel-space-api cequel-space:api-$VERSION
-          docker push cequel-space:api-$VERSION
+          docker tag cequel-space-api benvoss/cequel-space:api-$VERSION
+          docker push benvoss/cequel-space:api-$VERSION
 
-          docker tag cequel-space-app cequel-space:app-$VERSION
-          docker push cequel-space:app-$VERSION
+          docker tag cequel-space-app benvoss/cequel-space:app-$VERSION
+          docker push benvoss/cequel-space:app-$VERSION
