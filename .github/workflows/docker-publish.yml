@@ -13,30 +13,19 @@ on:
   # Run tests for any PRs.
   pull_request:
 
-
-
 jobs:
 
-  # Build the images
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Build the API Docker image
-      run: docker build --pull -t cequel-space-api api --tag cequel-space-api
-    - name: Build the APP Docker image
-      run: docker build --pull -t cequel-space-app app --tag cequel-space-app
-
-  # Push images to DockerHub.
   push:
-    # Ensure build job passes before pushing image.
-    needs: build
-
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
 
     steps:
+      - name: Build the API Docker image
+        run: docker build --pull -t cequel-space-api api --tag cequel-space-api
+
+      - name: Build the APP Docker image
+        run: docker build --pull -t cequel-space-app app --tag cequel-space-app
+
       - name: Log into registry
         run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login docker.pkg.github.com -u benvoss --password-stdin
 
@@ -51,7 +40,6 @@ jobs:
           # Use Docker `latest` tag convention
           [ "$VERSION" == "main" ] && VERSION=latest
 
-          echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
 
           docker tag cequel-space-api cequel-space:api-$VERSION
