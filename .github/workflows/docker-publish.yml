@@ -20,6 +20,8 @@ jobs:
     if: github.event_name == 'push'
 
     steps:
+      - uses: actions/checkout@v2
+
       - name: Build the API Docker image
         run: docker build --pull -t cequel-space-api api --tag cequel-space-api
 
