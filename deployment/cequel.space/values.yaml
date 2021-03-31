@@ -22,6 +22,6 @@ redis:
   database: 1
 
 images:
-  api: cequel-space-api:latest
-  app: cequel-space-app:latest
+  api: benvoss/cequel-space:api-latest
+  app: benvoss/cequel-space:app-latest
   nginx: nginx:stable-alpine
