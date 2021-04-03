@@ -37,11 +37,10 @@ spec:
         #  periodSeconds: 10
         ports:
         - containerPort: 80
-        volumeMounts:
-        - name: config
-          mountPath: /usr/share/nginx/html/config.json
-          subPath: config.json
-      volumes:
-      - name: config
-        configMap:
-          name: cequel-space-app-cm
+        env:
+        - name: OAuth__Authority
+          value: "{{ .Values.authentication.authority }}"
+        - name: OAuth__ClientId
+          value: "{{ .Values.authentication.clientId }}"
+        - name: OAuth__ResponseType
+          value: "{{ .Values.authentication.responseType }}"

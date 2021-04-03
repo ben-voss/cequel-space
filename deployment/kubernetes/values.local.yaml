@@ -1,0 +1,27 @@
+# Default values for Cequel.Space.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+expose:
+  loadBalancer:
+    IP: 192.168.1.17
+    annotations: {
+      metallb.universe.tf/address-pool: production-public-ips
+    }
+  
+authentication:
+  authority: "https://dev-m8lv58fh.eu.auth0.com/"
+  authorizationUrl: "https://dev-m8lv58fh.eu.auth0.com/authorize"
+  tokenUrl: "https://dev-m8lv58fh.eu.auth0.com/oauth/token"
+  clientId: "1vyrUVnXNryAIXqcyW9BETnyawNyxkzH"
+  responseType: "code"
+  audience: "https://cequel-space.voss/api"
+
+redis:
+  endPoint: "redis.voss"
+  database: 1
+
+images:
+  api: core.harbor.voss/cequel-space/cequel-space-api:latest
+  app: core.harbor.voss/cequel-space/cequel-space-app:latest
+  nginx: core.harbor.voss/cequel-space/nginx:stable-alpine
