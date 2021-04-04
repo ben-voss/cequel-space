@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cat <<EOT >> /usr/share/nginx/html/config.json
 {
