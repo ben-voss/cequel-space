@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  redis:
+    image: redis
+  api:
+    image: benvoss/cequel-space:api-latest
+    pull_policy: always
+    environment:
+      ASPNETCORE_URLS: "http://0.0.0.0:80"
+      OAuth__Authority: ${OAuth__Authority}
+      OAuth__AuthorizationUrl: ${OAuth__AuthorizationUrl}
+      OAuth__TokenUrl: ${OAuth__TokenUrl}
+      OAuth__Audience: ${OAuth__Audience}
+      OAuth__ClientId: ${OAuth__ClientId}
+      Redis__EndPoint: redis
+      Redis__Database: 0
+  app:
+    image: benvoss/cequel-space:app-latest
+    pull_policy: always
+    environment:
+      OAuth__Authority: ${OAuth__Authority}
+      OAuth__ClientId: ${OAuth__ClientId}    
+      OAuth__ResponseType: ${OAuth__ResponseType}
+  gateway:
+    image: nginx
+    volumes:
+      - ${PWD}/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "8080:80"

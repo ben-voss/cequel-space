@@ -7,5 +7,3 @@ cat <<EOT >> /usr/share/nginx/html/config.json
     "responseType": "${OAuth__ResponseType}"
 }
 EOT
-
-nginx -g deamon off;

@@ -30,11 +30,32 @@ npm run build
 
 ## Browser Client
 
-The browser client consists of a web application with a supporting API component.  It requires a Redis storage back end.
+The browser client consists of a web application with a supporting API component.  It uses a Redis storage back end and uses Nginx as a reverse proxy gateway.  The browser client requires integration with an external OAuth provider and has been tested with [auth0](https://auth0.com/) and [IdentityServer](https://github.com/IdentityServer).
 
 ## Installing
 
-The browser client is designed to run in Docker and this repo contains a Helm chart for use with Kubernetes.
+The browser client is designed to run in Docker containers and this repo contains configuration for use with Docker Compose and a Helm chart for use with Kubernetes.
+
+### Docker Compose
+
+Edit the deployment/docker/.env file and provide values for your OAuth provider.
+
+Start the containers with this command:
+
+```
+docker-compose up
+```
+
+This will start the API, App and Nginx gateway containers and expose an endpoint on localhost:8080
+
+### Kubernetes
+
+To deploy via Helm, edit the values.yaml file at deployment/kubernetes/cequel.space to set OAuth configuration, redis and load balalancer configuration.
+
+```
+helm install --values=values.yaml --namespace cequel-space --create-namespace cequel.space ./cequel.space
+
+```
 
 ## License
 

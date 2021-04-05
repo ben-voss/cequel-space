@@ -19,7 +19,6 @@ RUN npm run build
 FROM nginx:stable-alpine as production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY start.sh start.sh
-RUN chmod +x start.sh
+COPY 00-create-config.sh /docker-entrypoint.d/00-create-config.sh
+RUN chmod +x /docker-entrypoint.d/00-create-config.sh
 EXPOSE 80
-CMD ["start.sh"]
