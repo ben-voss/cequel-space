@@ -18,6 +18,9 @@ module.exports = {
       rendererProcessFile: "src/electronRenderer.ts",
       chainWebpackRendererProcess: config => {
         config.plugin("copy").tap(args => {
+          // Clear the multi-page build settings while building the electron client so we get the correct entrypoint.
+          config.pages = {};
+
           args[0].push({ from: "src/preload.js", to: "" }); // copy to the root of the app.asar file
           return args;
         });
