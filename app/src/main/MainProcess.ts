@@ -458,12 +458,12 @@ export default class MainProcess {
 
     // Create the browser window.
     const window: BrowserWindow = new BrowserWindow({
-      x: x,
-      y: y,
+      x: Math.round(x),
+      y: Math.round(y),
       show: false,
       backgroundColor: "#08090d", // Copied from $color-0
-      width: width,
-      height: height,
+      width: Math.round(width),
+      height: Math.round(height),
       title: app.name,
       webPreferences: {
         // Use pluginOptions.nodeIntegration, leave this alone
